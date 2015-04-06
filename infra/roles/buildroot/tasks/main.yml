@@ -37,3 +37,8 @@
     owner: root
     group: root
 
+- name: create buildroot link
+  file:
+    src: "/opt/buildroot-{{ buildroot_version }}"
+    dest: "/opt/buildroot"
+    state: link

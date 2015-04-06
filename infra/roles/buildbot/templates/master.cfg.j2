@@ -69,37 +69,23 @@ c['schedulers'] = [
 
 factory = BuildFactory()
 
-env = {
-    'PATH': ['/usr/bin', '/usr/local/bin'],
-    'O': '/tmp/build',
-    'BR2_DL_DIR': '/tmp/build/dl',
-    'BR2_EXTERNAL': '/tmp/build'
-}
-
 factory.addStep(
     Git(repourl='{{ buildbot_project.repo }}',
         mode='incremental', method='clobber')
 )
 
-factory.addStep(
-    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'rpi_defconfig'])
-)
+commands = [
+    'make O=$PWD BR2_DL_DIR=$PWD/dl BR2_EXTERNAL=$PWD -C /opt/buildroot rpi_defconfig',
+    'make O=$PWD BR2_DL_DIR=$PWD/dl BR2_EXTERNAL=$PWD -C /opt/buildroot all',
+    'make O=$PWD BR2_DL_DIR=$PWD/dl BR2_EXTERNAL=$PWD -C /opt/buildroot graph-build',
+    'make O=$PWD BR2_DL_DIR=$PWD/dl BR2_EXTERNAL=$PWD -C /opt/buildroot graph-depends',
+    'make O=$PWD BR2_DL_DIR=$PWD/dl BR2_EXTERNAL=$PWD -C /opt/buildroot legal-info',
+]
 
-factory.addStep(
-    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'all'])
-)
-
-factory.addStep(
-    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'graph-build'])
-)
-
-factory.addStep(
-    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'graph-depends'])
-)
-
-factory.addStep(
-    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'legal-info'])
-)
+for cmd in commands:
+    factory.addStep(
+        ShellCommand(command=cmd.split(' '))
+    )
 
 c['builders'] = [
     BuilderConfig(
