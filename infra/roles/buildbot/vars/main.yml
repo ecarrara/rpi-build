@@ -1,0 +1,26 @@
+---
+
+secret_key: 'rpibuild'
+
+buildbot_auth:
+  username: rpibuild
+  password: "rpibuild"
+
+buildbot_project:
+  name: rpi-build
+  title: RPI Build
+  url: https://github.com.br/ecarrara/rpi-build
+  repo: git@github.com:ecarrara/rpi-build.git
+
+buildbot_slaves:
+  - ['slave', 'slave']
+
+buildbot_web:
+  port: 8010
+  users:
+    - ['rpibuild', 'rpibuild']
+
+buildbot_admin_email: "build@localhost.localdomain"
+
+buildbot_recipients:
+    - "Erle Carrara <carrara.erle@gmail.com>"

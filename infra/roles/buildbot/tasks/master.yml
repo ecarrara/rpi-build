@@ -1,0 +1,26 @@
+---
+
+- name: create buildbot master project
+  sudo: yes
+  sudo_user: buildbot
+  command: >
+    chdir=/var/lib/buildbot/masters/
+    creates=/var/lib/buildbot/masters/{{ buildbot_project.name }}
+    buildbot create-master -r {{ buildbot_project.name }}
+
+- name: configure builmaster daemon
+  template:
+    src: buildmaster.conf.j2
+    dest: /etc/default/buildmaster
+
+- name: configure buildbot master project
+  sudo: yes
+  sudo_user: buildbot
+  template:
+    src: master.cfg.j2
+    dest: "/var/lib/buildbot/masters/{{ buildbot_project.name }}/master.cfg"
+  notify:
+    - restart buildmaster
+
+- name: enable buildbot master
+  service: name=buildmaster enabled=yes

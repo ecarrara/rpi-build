@@ -1,0 +1,21 @@
+---
+
+- name: create buildbot slave project
+  sudo: yes
+  sudo_user: buildbot
+  command: >
+    chdir=/var/lib/buildbot/slaves/
+    creates=/var/lib/buildbot/slaves/{{ buildbot_project.name }}
+    buildslave create-slave -r {{ buildbot_project.name }} localhost {{ item[0] }} {{ item[1] }}
+  with_nested:
+    - buildbot_slaves
+
+- name: configure builslave daemon
+  template:
+    src: buildslave.conf.j2
+    dest: /etc/default/buildslave
+  notify:
+    - restart buildslave
+
+- name: enable buildbot
+  service: name=buildslave enabled=yes

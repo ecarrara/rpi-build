@@ -1,0 +1,39 @@
+---
+
+- name: install buildroot dependencies
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - autoconf
+    - build-essential
+    - bison
+    - flex
+    - g++
+    - gettext
+    - git
+    - graphviz
+    - libssl-dev
+    - ncurses-dev
+    - python-matplotlib
+    - python-numpy
+    - texinfo
+    - unzip
+    - zlib1g-dev
+
+- name: download buildroot
+  get_url:
+    url: "http://buildroot.uclibc.org/downloads/buildroot-{{ buildroot_version }}.tar.gz"
+    dest: "/tmp/buildroot-{{ buildroot_version }}.tar.gz"
+
+- name: extract buildroot
+  unarchive:
+    copy: false
+    src: "/tmp/buildroot-{{ buildroot_version }}.tar.gz"
+    dest: "/opt"
+    creates: "/opt/buildroot-{{ buildroot_version }}"
+    owner: root
+    group: root
+

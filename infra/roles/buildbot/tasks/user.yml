@@ -1,0 +1,38 @@
+---
+
+- name: create .ssh directory
+  file:
+    state: directory
+    dest: /var/lib/buildbot/.ssh
+    owner: buildbot
+    group: buildbot
+    mode: 755
+
+- name: upload known_hosts
+  copy:
+    src: known_hosts
+    dest: /var/lib/buildbot/.ssh/known_hosts
+    owner: buildbot
+    group: buildbot
+    mode: 600
+
+- name: upload deploy key
+  copy:
+    src: deploy_key.encrypted
+    dest: /var/lib/buildbot/.ssh/id_rsa.encrypted
+    owner: buildbot
+    group: buildbot
+    mode: 600
+
+- name: decrypt deploy key
+  command: >
+    creates=/var/lib/buildbot/.ssh/id_rsa
+    openssl aes-256-cbc -salt -a -d \
+    -in /var/lib/buildbot/.ssh/id_rsa.encrypted \
+    -out /var/lib/buildbot/.ssh/id_rsa -k {{ secret_key }}
+
+- name: set ssh key permission
+  file:
+    mode: 0600
+    path: "/var/lib/buildbot/.ssh/id_rsa"
+    owner: buildbot

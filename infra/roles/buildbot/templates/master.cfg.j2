@@ -1,0 +1,147 @@
+# -*- coding: utf-8 -*-
+
+from buildbot.buildslave import BuildSlave
+from buildbot.process.factory import BuildFactory
+from buildbot.steps.source.git import Git
+from buildbot.steps.shell import ShellCommand
+from buildbot.steps.python import PyFlakes
+from buildbot.status import html
+from buildbot.status.web import authz, auth
+from buildbot.status.mail import MailNotifier
+from buildbot.changes.gitpoller import GitPoller
+from buildbot.schedulers.basic import SingleBranchScheduler
+from buildbot.schedulers.forcesched import ForceScheduler
+from buildbot.config import BuilderConfig
+from buildbot.changes import filter
+
+
+c = BuildmasterConfig = {}
+
+# PROJECT IDENTITY
+c['title'] = '{{ buildbot_project.title }}'
+c['titleURL'] = '{{ buildbot_project.url }}'
+
+c['buildbotURL'] = 'http://localhost:8010/'
+
+# DB URL
+
+c['db'] = {
+    'db_url': 'sqlite:///state.sqlite',
+}
+
+# BUILDSLAVES
+
+c['slavePortnum'] = 9989
+
+c['slaves'] = []
+
+{% for name, password in buildbot_slaves %}
+c['slaves'].append(BuildSlave('{{ name }}', '{{ password }}'))
+{% endfor %}
+
+
+# CHANGESOURCES
+
+c['change_source'] = [
+    GitPoller(
+        repourl='{{ buildbot_project.repo }}',
+        branch='master',
+        pollinterval=60)
+]
+
+
+# SCHEDULERS
+
+c['schedulers'] = [
+    SingleBranchScheduler(
+        name='all',
+        change_filter=filter.ChangeFilter(branch='master'),
+        treeStableTimer=10,
+        builderNames=['mainbuilder']),
+
+    ForceScheduler(
+        name="force",
+        builderNames=["mainbuilder"])
+]
+
+
+# BUILDERS
+
+factory = BuildFactory()
+
+env = {
+    'PATH': ['/usr/bin', '/usr/local/bin'],
+    'O': '/tmp/build',
+    'BR2_DL_DIR': '/tmp/build/dl',
+    'BR2_EXTERNAL': '/tmp/build'
+}
+
+factory.addStep(
+    Git(repourl='{{ buildbot_project.repo }}',
+        mode='incremental', method='clobber')
+)
+
+factory.addStep(
+    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'rpi_defconfig'])
+)
+
+factory.addStep(
+    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'all'])
+)
+
+factory.addStep(
+    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'graph-build'])
+)
+
+factory.addStep(
+    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'graph-depends'])
+)
+
+factory.addStep(
+    ShellCommand(command=['make', '-C', '/opt/buildroot/', 'legal-info'])
+)
+
+c['builders'] = [
+    BuilderConfig(
+        name='mainbuilder',
+        slavenames=['slave'],
+        factory=factory)
+]
+
+
+# STATUS TARGETS
+
+c['status'] = []
+
+users = []
+
+{% for name, password in buildbot_web.users %}
+users.append(('{{ name }}', '{{ password }}'))
+{% endfor %}
+
+authz_cfg = authz.Authz(
+    auth=auth.BasicAuth(users),
+    gracefulShutdown=False,
+    forceBuild='auth',
+    forceAllBuilds=False,
+    pingBuilder=False,
+    stopBuild=False,
+    stopAllBuilds=False,
+    cancelPendingBuild=False,
+)
+
+c['status'].append(html.WebStatus(http_port={{ buildbot_web.port }}, authz=authz_cfg))
+
+recipients = []
+
+{% for recipient in buildbot_recipients %}
+recipients.append('{{ recipient }}')
+{% endfor %}
+
+mail_notifier = MailNotifier(
+    fromaddr='{{ buildbot_admin_email }}',
+    sendToInterestedUsers=False,
+    extraRecipients=recipients
+)
+
+c['status'].append(mail_notifier)

@@ -1,0 +1,9 @@
+---
+
+- hosts: default
+  sudo: yes
+  remote_user: vagrant
+  roles:
+    - { role: buildroot, tags: [buildroot] }
+    - { role: buildbot, tags: [buildbot] }
+
