@@ -84,7 +84,7 @@ commands = [
 
 for cmd in commands:
     factory.addStep(
-        ShellCommand(command=cmd)
+        ShellCommand(name=cmd.rsplit(' ', 1)[-1], command=cmd)
     )
 
 c['builders'] = [
